@@ -70,6 +70,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   }
 
   const addToCart = () => {
+    if (!product) return;
+    
     const cart = JSON.parse(localStorage.getItem('penjulum-cart') || '[]');
     const existingItem = cart.find((item: any) => item.id === product.id && item.color === selectedColor && item.size === selectedSize);
     
@@ -81,7 +83,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         name: product.name,
         price: product.price,
         quantity: 1,
-        image: product.images[0],
+        image: product.images?.[0] || '',
         color: selectedColor,
         size: selectedSize
       });
@@ -129,7 +131,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               />
             </div>
             <div className="mt-4 grid grid-cols-7 gap-2">
-              {product.images.map((image, index) => (
+              {product.images?.map((image, index) => (
                 <button
                   key={index}
                   type="button"
@@ -163,7 +165,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             <div className="mt-8">
               <h3 className="text-sm uppercase tracking-wider font-medium mb-4">Details</h3>
               <ul className="space-y-2">
-                {product.details.map((detail, index) => (
+                {product.details?.map((detail, index) => (
                   <li key={index} className="text-gray-400 text-sm flex items-center gap-2">
                     <span className="w-1 h-1 bg-white rounded-full" />
                     {detail}
@@ -176,8 +178,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               {/* Color picker */}
               <div>
                 <h3 className="text-sm uppercase tracking-wider font-medium mb-3">Color: {selectedColor}</h3>
-                <div className="flex items-center gap-3">
-                  {product.colors.map((color) => (
+                <div className="flex gap-2">
+                  {product.colors?.map((color) => (
                     <label
                       key={color.name}
                       className={`relative flex cursor-pointer items-center justify-center rounded-full p-1 ${selectedColor === color.name ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`}
@@ -207,7 +209,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   </button>
                 </div>
                 <div className="grid grid-cols-6 gap-2">
-                  {product.sizes.map((size) => (
+                  {product.sizes?.map((size) => (
                     <label
                       key={size}
                       className={`flex items-center justify-center py-3 text-sm font-medium cursor-pointer transition ${selectedSize === size ? 'bg-white text-black' : 'border border-white/20 text-white hover:border-white'}`}
