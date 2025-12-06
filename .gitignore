@@ -44,3 +44,6 @@ next-env.d.ts
 *.mp4
 braydens/black.mp4
 public/videos/
+
+# Local Netlify folder
+.netlify

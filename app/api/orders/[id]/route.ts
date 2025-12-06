@@ -5,14 +5,15 @@ import { eq } from 'drizzle-orm';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const updated = await db
       .update(orders)
       .set({ ...body, updatedAt: new Date() })
-      .where(eq(orders.id, params.id))
+      .where(eq(orders.id, id))
       .returning();
     
     return NextResponse.json(updated[0]);
