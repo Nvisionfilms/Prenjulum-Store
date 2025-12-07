@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ShoppingBagIcon, XMarkIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 type CartItem = {
@@ -16,6 +17,7 @@ type CartItem = {
 };
 
 export default function CartPage() {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -42,17 +44,19 @@ export default function CartPage() {
     localStorage.setItem('penjulum-cart', JSON.stringify(newCart));
   };
 
-  const removeFromCart = (id: number) => {
-    updateCart(cartItems.filter(item => item.id !== id));
+  const removeFromCart = (id: number, size?: string, color?: string) => {
+    updateCart(cartItems.filter(item => 
+      !(item.id === id && item.size === size && item.color === color)
+    ));
   };
 
-  const updateQuantity = (id: number, quantity: number) => {
+  const updateQuantity = (id: number, size: string | undefined, color: string | undefined, quantity: number) => {
     if (quantity < 1) {
-      removeFromCart(id);
+      removeFromCart(id, size, color);
       return;
     }
     updateCart(cartItems.map(item => 
-      item.id === id ? { ...item, quantity } : item
+      (item.id === id && item.size === size && item.color === color) ? { ...item, quantity } : item
     ));
   };
 
@@ -137,7 +141,7 @@ export default function CartPage() {
                         <button
                           type="button"
                           className="text-gray-400 hover:text-white transition"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => removeFromCart(item.id, item.size, item.color)}
                         >
                           <XMarkIcon className="h-5 w-5" />
                         </button>
@@ -146,7 +150,7 @@ export default function CartPage() {
                       <div className="mt-auto flex items-end justify-between">
                         <div className="flex items-center border border-white/20">
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity - 1)}
                             className="px-3 py-2 hover:bg-white/10 transition"
                           >
                             −
@@ -155,7 +159,7 @@ export default function CartPage() {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity + 1)}
                             className="px-3 py-2 hover:bg-white/10 transition"
                           >
                             +
@@ -295,6 +299,7 @@ export default function CartPage() {
                           console.log('Order completed:', order);
                           
                           // Save order to database
+                          let savedOrderId = null;
                           if (customerInfo.name && customerInfo.email) {
                             const orderData = {
                               customerEmail: customerInfo.email,
@@ -319,17 +324,29 @@ export default function CartPage() {
                               paypalOrderId: order?.id,
                             };
                             
-                            await fetch('/api/orders', {
+                            const response = await fetch('/api/orders', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(orderData),
+                            });
+                            
+                            const savedOrder = await response.json();
+                            savedOrderId = savedOrder.id;
+                            
+                            // Send receipt emails and update inventory
+                            await fetch('/api/send-receipt', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify(orderData),
                             });
                           }
                           
-                          alert('Payment successful! Thank you for your purchase.');
+                          // Clear cart
                           localStorage.removeItem('penjulum-cart');
                           setCartItems([]);
-                          setShowCheckout(false);
+                          
+                          // Redirect to confirmation page
+                          router.push(`/order-confirmation?orderId=${savedOrderId}`);
                         } catch (err) {
                           console.error('Error capturing order:', err);
                           alert('There was an error processing your payment. Please try again.');
